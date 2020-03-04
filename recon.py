@@ -1,18 +1,23 @@
 import subprocess, threading as t, tkinter as tk, tkinter.messagebox as tkmsg
 from time import sleep
 
-def countManufacturers(manCount, addresses):
+def loadDb():
 
-    with open('manuf', 'r') as file:
-        db = file.readlines()
+    try:
+        with open('manuf', 'r') as file:
+            db = file.readlines()
 
-    manufacturers = dict()
-
-    global discovered
-    discovered = set()
+    except FileNotFoundError:
+        print('[+] ERROR: Manufacturer database not found. Ensure manuf file is in this directory')
+        quit()
 
     for record in db:
         manufacturers[record.split('\t')[0]] = record.split('\t')[1].strip('\n')
+
+def countManufacturers(manCount, addresses):
+
+    global discovered
+    discovered = set()
 
     p = subprocess.Popen(('sudo', 'tcpdump', '-i', 'wlan0mon', '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
@@ -58,6 +63,7 @@ def loadMacs():
 
     global addresses
     global discovered
+    global manufacturers
 
     try:
         with open('recon_output.txt', 'r') as file:
@@ -68,7 +74,20 @@ def loadMacs():
             if mac not in addresses:
                 addresses.append(mac.strip('\n'))
             
-            discovered.add(mac.strip('\n'))
+                discovered.add(mac.strip('\n'))
+
+                oui = mac.upper()[:8]
+
+                if oui in manufacturers:
+
+                    if mac in discovered:
+                        pass
+
+                    elif manufacturers[oui] not in manCount:
+                        manCount[manufacturers[oui]] = 1
+                
+                    else:
+                        manCount[manufacturers[oui]] += 1
 
         tkmsg.showinfo('Load', 'Data loaded successfully')
 
@@ -87,7 +106,7 @@ def refresher():
             c.delete(b)
         bars = []
 
-    y_stretch = 30
+    y_stretch = 10
     y_gap = 20
     x_stretch = 20
     x_width = 80
@@ -150,6 +169,9 @@ def runGui():
     
 manCount = dict()
 addresses = list()
+manufacturers = dict()
+
+loadDb()
 
 monitoringThread = t.Thread(target=countManufacturers, args=(manCount,addresses,))
 monitoringThread.start()
