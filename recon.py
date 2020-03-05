@@ -1,5 +1,11 @@
+#!/usr/bin/python3
 import argparse, subprocess, threading as t, tkinter as tk, tkinter.messagebox as tkmsg
 from time import sleep
+from os import system
+
+def updateManuf():
+    print('[+] Retrieving manufacturer database...')
+    system('wget -q -N https://gitlab.com/wireshark/wireshark/raw/master/manuf')
 
 def loadDb():
 
@@ -8,19 +14,28 @@ def loadDb():
             db = file.readlines()
 
     except FileNotFoundError:
-        print('[+] ERROR: Manufacturer database not found. Ensure manuf file is in this directory')
+        print('[+] ERROR: Manufacturer database not found. Attempting to download now...')
+        updateManuf()
+        print('[+] Please try running again.')
         quit()
 
     for record in db:
-        manufacturers[record.split('\t')[0]] = record.split('\t')[1].strip('\n')
+
+        try:
+            manufacturers[record.split('\t')[0]] = record.split('\t')[1].strip('\n')
+        except IndexError:
+            pass
 
 def countManufacturers(manCount, addresses, interface):
 
     global discovered
     discovered = set()
 
-    p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    #p = subprocess.Popen(('cat', 'out.txt'), stdout=subprocess.PIPE); print('using interface {}'.format(interface))
+    print('[+] Using interface {}'.format(interface))
+    print('[+] Capturing preliminary data. Please wait...')
+
+    #p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(('cat', 'out.txt'), stdout=subprocess.PIPE);
     
     for row in iter(p.stdout.readline, b''):
 
@@ -134,8 +149,6 @@ def refresher():
     root.after(5000, refresher)
 
 def runGui():
-    print('Recon 0.1')
-    print('[+] Capturing preliminary data. Please wait...')
 
     while len(manCount) == 0:
         sleep(10)
@@ -170,15 +183,23 @@ def runGui():
 
 argparser = argparse.ArgumentParser(description='Blockade-Recon 0.1')
 argparser.add_argument('-i', '--interface', default='wlan0mon', help='Specify a wireless interface to listen on')
+argparser.add_argument('-u', '--updatedb', action='store_true', help='Attempt to retrieve an updated version of the manufacturer database')
 args = argparser.parse_args()
     
 manCount = dict()
 addresses = list()
 manufacturers = dict()
 
+print('Recon 0.1')
+
 loadDb()
 
 interface = args.interface
+updatedb = args.updatedb
+
+if updatedb:
+    updateManuf()
+
 monitoringThread = t.Thread(target=countManufacturers, args=(manCount,addresses,interface,))
 monitoringThread.start()
 
