@@ -1,4 +1,4 @@
-import subprocess, threading as t, tkinter as tk, tkinter.messagebox as tkmsg
+import argparse, subprocess, threading as t, tkinter as tk, tkinter.messagebox as tkmsg
 from time import sleep
 
 def loadDb():
@@ -14,12 +14,13 @@ def loadDb():
     for record in db:
         manufacturers[record.split('\t')[0]] = record.split('\t')[1].strip('\n')
 
-def countManufacturers(manCount, addresses):
+def countManufacturers(manCount, addresses, interface):
 
     global discovered
     discovered = set()
 
-    p = subprocess.Popen(('sudo', 'tcpdump', '-i', 'wlan0mon', '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #p = subprocess.Popen(('cat', 'out.txt'), stdout=subprocess.PIPE); print('using interface {}'.format(interface))
     
     for row in iter(p.stdout.readline, b''):
 
@@ -166,6 +167,10 @@ def runGui():
     t.Thread(target=refresher).start()
 
     root.mainloop()
+
+argparser = argparse.ArgumentParser(description='Blockade-Recon 0.1')
+argparser.add_argument('-i', '--interface', default='wlan0mon', help='Specify a wireless interface to listen on')
+args = argparser.parse_args()
     
 manCount = dict()
 addresses = list()
@@ -173,7 +178,8 @@ manufacturers = dict()
 
 loadDb()
 
-monitoringThread = t.Thread(target=countManufacturers, args=(manCount,addresses,))
+interface = args.interface
+monitoringThread = t.Thread(target=countManufacturers, args=(manCount,addresses,interface,))
 monitoringThread.start()
 
 stop = False
