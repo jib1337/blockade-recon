@@ -1,6 +1,6 @@
 # Blockade-Recon | Jack Nelson, 2020
 
-Wifi MAC Enumeration Tool, still developing (busy with uni at the moment)
+Wifi MAC Enumeration Tool, still developing (busy with uni at the moment). This tool captures MAC addresses from wireless data and tallys them based on manufacturer. Data can be imported and exported for use over multiple sessions.
 
 ![UI Screenshot](screen.jpg)
 
@@ -35,6 +35,11 @@ root@kali:~/blockade-recon# ./recon.py -i <interfacename>
 ```
 4. Wait for preliminary data to be captured.
 
+## Features to add:
+* Fix code to be less bad
+* Add duplicate checking when importing previous session
+* Add live scroller for captured data as it comes in
+* MAC spoofing detection
 
 
 
