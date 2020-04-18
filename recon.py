@@ -28,14 +28,10 @@ def loadDb():
 
 def countManufacturers(manCount, addresses, interface):
 
-    global discovered
-    discovered = set()
-
     print('[+] Using interface {}'.format(interface))
     print('[+] Capturing preliminary data. Please wait...')
 
     p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    #p = subprocess.Popen(('cat', 'out.txt'), stdout=subprocess.PIPE);
     
     for row in iter(p.stdout.readline, b''):
 
@@ -63,8 +59,6 @@ def countManufacturers(manCount, addresses, interface):
 
 def exportMacs():
 
-    global addresses
-
     try:
         with open('recon_output.txt', 'w') as file:
             for a in addresses:
@@ -76,10 +70,6 @@ def exportMacs():
         tkinter.messagebox.showinfo('Export', 'Export Failed')
 
 def loadMacs():
-
-    global addresses
-    global discovered
-    global manufacturers
 
     try:
         with open('recon_output.txt', 'r') as file:
@@ -122,7 +112,10 @@ def refresher():
             c.delete(b)
         bars = []
 
-    y_stretch = 10
+    manCountSorted = sorted(manCount.items(), key=lambda x: x[1], reverse=True)
+    norms = [float(count[1])/manCountSorted[0][1] for count in manCountSorted]
+
+    y_stretch = 250
     y_gap = 20
     x_stretch = 20
     x_width = 80
@@ -130,13 +123,13 @@ def refresher():
     c_width = 1050
     c_height = 600
 
-    for x, y in enumerate(sorted(manCount.items(), key=lambda x: x[1], reverse=True)):
+    for x, y in enumerate(manCountSorted):
         
         if x > 9:
             break
 
         x0 = x * x_stretch + x * x_width + x_gap
-        y0 = c_height - (y[1] * y_stretch + y_gap)
+        y0 = c_height - norms[x] * y_stretch
         x1 = x * x_stretch + x * x_width + x_width + x_gap
         y1 = c_height - y_gap
 
@@ -151,7 +144,7 @@ def refresher():
 def runGui():
 
     while len(manCount) == 0:
-        sleep(10)
+        sleep(2)
         if len(manCount) == 0:
             print('[+] No device information captured yet...')
     
@@ -189,6 +182,7 @@ args = argparser.parse_args()
 manCount = dict()
 addresses = list()
 manufacturers = dict()
+discovered = set()
 
 print('Recon 0.1')
 
