@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import argparse, subprocess, threading as t, tkinter as tk, tkinter.messagebox as tkmsg
+from queue import Queue
 from time import sleep
 from os import system
 
@@ -28,11 +29,12 @@ def loadDb():
 
 def countManufacturers(manCount, addresses, interface):
 
-    print('[+] Using interface {}'.format(interface))
+    print(f'[+] Using interface {interface}')
     print('[+] Capturing preliminary data. Please wait...')
 
-    p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    
+    #p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(('cat', 'out.txt'), stdout=subprocess.PIPE)
+
     for row in iter(p.stdout.readline, b''):
 
         if stop:
@@ -53,9 +55,15 @@ def countManufacturers(manCount, addresses, interface):
 
                 if manufacturers[oui] not in manCount:
                     manCount[manufacturers[oui]] = 1
+                    mOutput.put(f'New manufacturer recorded: {manufacturers[oui]}')
 
                 else:
                     manCount[manufacturers[oui]] += 1
+
+                macOutput.put(f'{mac}\t{manufacturers[oui]}')
+
+            else:
+                macOutput.put(mac)
 
 def exportMacs():
 
@@ -76,10 +84,10 @@ def loadMacs():
             macs = file.readlines()
 
         for mac in macs:
-            
-            if mac not in addresses:
+
+            if mac.strip('\n') not in addresses:
+                print('not found')
                 addresses.append(mac.strip('\n'))
-            
                 discovered.add(mac.strip('\n'))
 
                 oui = mac.upper()[:8]
@@ -121,7 +129,7 @@ def refresher():
     x_width = 80
     x_gap = 20
     c_width = 1050
-    c_height = 600
+    c_height = 600/2
 
     for x, y in enumerate(manCountSorted):
         
@@ -133,13 +141,41 @@ def refresher():
         x1 = x * x_stretch + x * x_width + x_width + x_gap
         y1 = c_height - y_gap
 
-        bar = c.create_rectangle(x0, y0, x1, y1, fill="red")
-        barText = c.create_text(x0+2, y0, anchor=tk.SW, text='{}: {}'.format(str(y[0]), y[1]))
+        bar = c.create_rectangle(x0, y0, x1, y1, fill='chartreuse2')
+        barText = c.create_text(x0+2, y0, anchor=tk.SW, text='{}: {}'.format(str(y[0]), y[1]), fill='white')
             
         bars.append(bar)
         bars.append(barText)
 
     root.after(5000, refresher)
+
+def displayOutput():
+
+    macList = ''
+
+    while not macOutput.empty() and not stop:
+        macDetails = macOutput.get(block=False)
+
+        if macDetails is None:
+            break
+
+        macList += macDetails + '\n'
+        outputText.set(macList)
+        macOutput.task_done()
+
+def messageOutput():
+
+    messageList = ''
+
+    while not mOutput.empty() and not stop:
+        message = mOutput.get(block=False)
+
+        if message is None:
+            break
+
+        messageList += message + '\n'
+        messageText.set(messageList)
+        mOutput.task_done()
 
 def runGui():
 
@@ -151,11 +187,35 @@ def runGui():
     global root
     root = tk.Tk()
     root.title("Recon")
+    root.resizable(0, 0) 
     c_width = 1050
     c_height = 600
 
+    topFrame = tk.Frame(root, width=c_width, height=300, bg='grey8')
+    topFrame.pack(side=tk.TOP, fill=tk.BOTH)
+
+    outputFrame = tk.Frame(topFrame, width=c_width/2, height=300, bg='grey8')
+    outputFrame.pack_propagate(0)
+    outputFrame.pack(side=tk.LEFT, fill=tk.BOTH)
+    
+    global outputText
+    outputText = tk.StringVar()
+    outputText.set('Incoming MACS...')
+    outputTextWindow = tk.Message(outputFrame, textvariable=outputText, justify=tk.LEFT, width=c_width/2, anchor=tk.SW, fg='white', bg='grey8')
+    outputTextWindow.pack(fill=tk.BOTH)
+
+    messageFrame = tk.Frame(topFrame, width=c_width/2, height=300, bg='grey8')
+    messageFrame.pack_propagate(0)
+    messageFrame.pack(fill=tk.BOTH)
+
+    global messageText
+    messageText = tk.StringVar()
+    messageText.set('Incoming messages...')
+    messageTextWindow = tk.Message(messageFrame, textvariable=messageText, justify=tk.LEFT, width=c_width/2, anchor=tk.SW, fg='white', bg='grey8')
+    messageTextWindow.pack(fill=tk.BOTH)
+
     global c
-    c = tk.Canvas(root, width=c_width, height=c_height, bg='grey90')
+    c = tk.Canvas(root, width=c_width, height=c_height/2, bg='grey8')
     c.pack()
 
     btnExport = tk.Button(root, text='Export', command=exportMacs)
@@ -170,6 +230,8 @@ def runGui():
     global bars
     bars = []
 
+    t.Thread(target=displayOutput).start()
+    t.Thread(target=messageOutput).start()
     t.Thread(target=refresher).start()
 
     root.mainloop()
@@ -193,6 +255,9 @@ updatedb = args.updatedb
 
 if updatedb:
     updateManuf()
+
+macOutput = Queue()
+mOutput = Queue()
 
 monitoringThread = t.Thread(target=countManufacturers, args=(manCount,addresses,interface,))
 monitoringThread.start()
