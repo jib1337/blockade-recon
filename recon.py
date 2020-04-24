@@ -32,8 +32,8 @@ def countManufacturers(manCount, addresses, interface):
     print(f'[+] Using interface {interface}')
     print('[+] Capturing preliminary data. Please wait...')
 
-    #p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p = subprocess.Popen(('cat', 'out.txt'), stdout=subprocess.PIPE)
+    p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #p = subprocess.Popen(('cat', 'out.txt'), stdout=subprocess.PIPE)
 
     for row in iter(p.stdout.readline, b''):
 
