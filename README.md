@@ -35,12 +35,6 @@ root@kali:~/blockade-recon# ./recon.py -i <interfacename>
 ```
 4. Wait for preliminary data to be captured.
 
-## Features to add:
-* Fix code to be less bad
-* Add duplicate checking when importing previous session
-* Add live scroller for captured data as it comes in
-* MAC spoofing detection
-
 
 
 

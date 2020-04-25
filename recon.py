@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import argparse, subprocess, threading as t, tkinter as tk, tkinter.messagebox as tkmsg
+import argparse, subprocess, threading as t, tkinter as tk, tkinter.messagebox as tkmsg, re
 from queue import Queue
 from time import sleep
 from os import system
@@ -32,8 +32,10 @@ def countManufacturers(manCount, addresses, interface):
     print(f'[+] Using interface {interface}')
     print('[+] Capturing preliminary data. Please wait...')
 
+    discoveredSSIDS = set()
+    bssidPairs = list()
+
     p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    #p = subprocess.Popen(('cat', 'out.txt'), stdout=subprocess.PIPE)
 
     for row in iter(p.stdout.readline, b''):
 
@@ -41,29 +43,59 @@ def countManufacturers(manCount, addresses, interface):
             p.terminate()
             break
 
-        try:
-            mac = row.rstrip().decode('utf-8').split()[15][3:]
-        except IndexError:
-            pass
+        if b'Beacon' not in row:
+            try:
+                mac1match = re.search('RA:.{2}:.{2}:.{2}:.{2}:.{2}:.{2}', row.rstrip().decode('utf-8'))
 
-        if mac not in discovered and ':' in mac and mac != 'ff:ff:ff:ff:ff:ff' and 'ID' not in mac:
-            discovered.add(mac)
-            addresses.append(mac)
-            oui = mac.upper()[:8]
+                if mac1match:
+                    mac1match = mac1match.group(0).replace('RA:', '')
 
-            if oui in manufacturers:
+                mac2match = re.search('SA:.{2}:.{2}:.{2}:.{2}:.{2}:.{2}', row.rstrip().decode('utf-8'))
 
-                if manufacturers[oui] not in manCount:
-                    manCount[manufacturers[oui]] = 1
-                    mOutput.put(f'New manufacturer recorded: {manufacturers[oui]}')
+                if mac2match:
+                    mac2match = mac2match.group(0).replace('SA:', '')
+
+            except IndexError:
+                continue
+        else:
+            
+            beaconName = re.search('\(.*\)', row.rstrip().decode('utf-8')).group(0)[1:-1]
+            BSSID = re.search('BSSID:.{2}:.{2}:.{2}:.{2}:.{2}:.{2}', row.rstrip().decode('utf-8')).group(0).replace('BSSID:', '')
+
+            beaconPair = (beaconName, BSSID)
+
+            if beaconName != '' and beaconName not in discoveredSSIDS:
+                discoveredSSIDS.add(beaconName)
+                bssidPairs.append(beaconPair)
+
+                mOutput.put(f'New base station:\t{beaconName} - {BSSID}')
+
+            elif beaconName in discoveredSSIDS:
+                if beaconPair not in bssidPairs:
+                    mOutput.put(f'Possible evil twin:\t{beaconName} - {BSSID}')
+                    bssidPairs.append(beaconPair)
+
+            continue
+
+        for mac in [mac1match, mac2match]:
+            if mac and mac not in discovered:
+                discovered.add(mac)
+                addresses.append(mac)
+                oui = mac.upper()[:8]
+
+                if oui in manufacturers:
+
+                    if manufacturers[oui] not in manCount:
+                        manCount[manufacturers[oui]] = 1
+                        mOutput.put(f'New manufacturer:\t{manufacturers[oui]}')
+
+                    else:
+                        manCount[manufacturers[oui]] += 1
+
+                    macOutput.put(f'{mac}\t{manufacturers[oui]}')
 
                 else:
-                    manCount[manufacturers[oui]] += 1
-
-                macOutput.put(f'{mac}\t{manufacturers[oui]}')
-
-            else:
-                macOutput.put(mac)
+                    macOutput.put(mac)
 
 def exportMacs():
 
@@ -153,29 +185,37 @@ def displayOutput():
 
     macList = ''
 
-    while not macOutput.empty() and not stop:
-        macDetails = macOutput.get(block=False)
+    while True:
+        while not macOutput.empty() and not stop:
+            macDetails = macOutput.get(block=False)
 
-        if macDetails is None:
+            if macDetails is None:
+                break
+
+            macList += macDetails + '\n'
+            outputText.set(macList)
+            macOutput.task_done()
+
+        if stop:
             break
-
-        macList += macDetails + '\n'
-        outputText.set(macList)
-        macOutput.task_done()
 
 def messageOutput():
 
     messageList = ''
 
-    while not mOutput.empty() and not stop:
-        message = mOutput.get(block=False)
+    while True:
+        while not mOutput.empty() and not stop:
+            message = mOutput.get(block=False)
 
-        if message is None:
+            if message is None:
+                break
+
+            messageList += message + '\n'
+            messageText.set(messageList)
+            mOutput.task_done()
+
+        if stop:
             break
-
-        messageList += message + '\n'
-        messageText.set(messageList)
-        mOutput.task_done()
 
 def runGui():
 
