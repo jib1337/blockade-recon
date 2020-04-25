@@ -32,9 +32,6 @@ def countManufacturers(manCount, addresses, interface):
     print(f'[+] Using interface {interface}')
     print('[+] Capturing preliminary data. Please wait...')
 
-    discoveredSSIDS = set()
-    bssidPairs = list()
-
     p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     for row in iter(p.stdout.readline, b''):
@@ -69,6 +66,7 @@ def countManufacturers(manCount, addresses, interface):
                 bssidPairs.append(beaconPair)
 
                 mOutput.put(f'New base station:\t{beaconName} - {BSSID}')
+                messageData.append(f'BASE:{BSSID}|{beaconName}')
 
             elif beaconName in discoveredSSIDS:
                 if beaconPair not in bssidPairs:
@@ -99,9 +97,11 @@ def countManufacturers(manCount, addresses, interface):
 
 def exportMacs():
 
+    toWrite = addresses + messageData
+
     try:
         with open('recon_output.txt', 'w') as file:
-            for a in addresses:
+            for a in toWrite:
                 file.write('{}\n'.format(a))
 
         tkmsg.showinfo('Export', 'Exported to recon_output.txt')
@@ -113,35 +113,54 @@ def loadMacs():
 
     try:
         with open('recon_output.txt', 'r') as file:
-            macs = file.readlines()
 
-        for mac in macs:
+            savedData = file.readlines()
 
-            if mac.strip('\n') not in addresses:
-                print('not found')
-                addresses.append(mac.strip('\n'))
-                discovered.add(mac.strip('\n'))
+        for line in savedData:
 
-                oui = mac.upper()[:8]
+            if 'BASE:' not in line:
 
-                if oui in manufacturers:
+                if line.strip('\n') not in addresses:
 
-                    if mac in discovered:
-                        pass
+                    addresses.append(line.strip('\n'))
+                    discovered.add(line.strip('\n'))
 
-                    elif manufacturers[oui] not in manCount:
-                        manCount[manufacturers[oui]] = 1
-                
-                    else:
-                        manCount[manufacturers[oui]] += 1
+                    oui = line.strip('\n').upper()[:8]
+
+                    if oui in manufacturers:
+
+                        if line in discovered:
+                            pass
+
+                        elif manufacturers[oui] not in manCount:
+                            manCount[manufacturers[oui]] = 1
+                    
+                        else:
+                            manCount[manufacturers[oui]] += 1
+
+            elif 'BASE:' in line:
+
+                beaconName = line.split('|')[1].strip('\n')
+                BSSID = line.split('|')[1].replace('BASE:', '').strip('\n')
+
+                beaconPair = (beaconName, BSSID)
+
+                if beaconName != '' and beaconName not in discoveredSSIDS:
+                    discoveredSSIDS.add(beaconName)
+                    bssidPairs.append(beaconPair)
+                    messageData.append(f'BASE:{BSSID}|{beaconName}')
+
+                elif beaconName in discoveredSSIDS:
+                    if beaconPair not in bssidPairs:
+                        bssidPairs.append(beaconPair)
 
         tkmsg.showinfo('Load', 'Data loaded successfully')
 
     except FileNotFoundError:
         tkmsg.showinfo('Load', 'File not found')
     
-    except:
-     tkmsg.showinfo('Load', 'Error whilst loading data')
+    except Exception as e:
+     tkmsg.showinfo('Load', 'Error whilst loading data:\n' + str(e))
 
 def refresher():
 
@@ -285,6 +304,9 @@ manCount = dict()
 addresses = list()
 manufacturers = dict()
 discovered = set()
+messageData = list()
+discoveredSSIDS = set()
+bssidPairs = list()
 
 print('Recon 0.1')
 
