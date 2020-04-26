@@ -4,6 +4,9 @@ Wifi MAC Enumeration Tool, still developing (busy with uni at the moment). This 
 
 ![UI Screenshot](screen.jpg)
 
+## Dependancies
+* tcpdump
+
 ## Usage Overview
 
 Requires a wireless adapter capable of monitor mode.
