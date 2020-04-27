@@ -222,6 +222,7 @@ def refresher():
 def displayOutput():
 
 	macList = ''
+	lineNumber = 1
 
 	while True:
 		while not macOutput.empty() and not stop:
@@ -230,9 +231,9 @@ def displayOutput():
 			if macDetails is None:
 				break
 
-			macList += macDetails + '\n'
-			outputText.set(macList)
+			outputTextWindow.insert(f'{lineNumber}.0', f'{macDetails}\n')
 			macOutput.task_done()
+			lineNumber += 1
 
 		if stop:
 			break
@@ -240,6 +241,7 @@ def displayOutput():
 def messageOutput():
 
 	messageList = ''
+	lineNumber = 1
 
 	while True:
 		while not mOutput.empty() and not stop:
@@ -248,9 +250,9 @@ def messageOutput():
 			if message is None:
 				break
 
-			messageList += message + '\n'
-			messageText.set(messageList)
+			messageTextWindow.insert(f'{lineNumber}.0', f'{message}\n')
 			mOutput.task_done()
+			lineNumber += 1
 
 		if stop:
 			break
@@ -276,21 +278,23 @@ def runGui(manufacturers):
 	outputFrame.pack_propagate(0)
 	outputFrame.pack(side=tk.LEFT, fill=tk.BOTH)
 	
-	global outputText
-	outputText = tk.StringVar()
-	outputText.set('Incoming MACS...')
-	outputTextWindow = tk.Message(outputFrame, textvariable=outputText, justify=tk.LEFT, width=c_width/2, anchor=tk.SW, fg='white', bg='grey8')
+	global outputTextWindow
+	outputScrollbar = tk.Scrollbar(outputFrame)
+	outputTextWindow = tk.Text(outputFrame, width=525, fg='white', bg='grey8', yscrollcommand=outputScrollbar.set)
+	outputScrollbar.pack(side = tk.RIGHT, fill=tk.Y)
 	outputTextWindow.pack(fill=tk.BOTH)
+	outputScrollbar.config(command=outputTextWindow.yview)
 
 	messageFrame = tk.Frame(topFrame, width=c_width/2, height=300, bg='grey8')
 	messageFrame.pack_propagate(0)
 	messageFrame.pack(fill=tk.BOTH)
 
-	global messageText
-	messageText = tk.StringVar()
-	messageText.set('Incoming messages...')
-	messageTextWindow = tk.Message(messageFrame, textvariable=messageText, justify=tk.LEFT, width=c_width/2, anchor=tk.SW, fg='white', bg='grey8')
+	global messageTextWindow
+	messageScrollbar = tk.Scrollbar(messageFrame)
+	messageTextWindow = tk.Text(messageFrame, width=525, fg='white', bg='grey8', yscrollcommand=messageScrollbar.set)
+	messageScrollbar.pack(side = tk.RIGHT, fill=tk.Y)
 	messageTextWindow.pack(fill=tk.BOTH)
+	messageScrollbar.config(command=messageTextWindow.yview)
 
 	global c
 	c = tk.Canvas(root, width=c_width, height=c_height/2, bg='grey8')
