@@ -1,8 +1,25 @@
-#!/usr/bin/python3
-import argparse, subprocess, threading as t, tkinter as tk, tkinter.messagebox as tkmsg, re
+#!/usr/bin/env python3
+import argparse, signal, subprocess, threading as t, tkinter as tk, tkinter.messagebox as tkmsg, re
 from queue import Queue
 from time import sleep
 from os import system
+
+def handler(sig, frame):
+
+	print('[+] Exiting...')
+	global stop
+	stop = True
+	try:
+		root.destroy()
+	except:
+		pass
+
+	for thread in range(len(threads)-1):
+		try:
+			threads[thread].join()
+		except RuntimeError: # Means GUI hasn't started
+			pass
+	exit()
 
 def updateManuf():
 
@@ -53,6 +70,7 @@ def countManufacturers(manCount, addresses, interface, manufacturers):
 	print('[+] Capturing preliminary data. Please wait...')
 
 	p = subprocess.Popen(('sudo', 'tcpdump', '-i', interface, '-e', '-nn'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	#p = subprocess.Popen(('cat', 'out.txt'), stdout=subprocess.PIPE)
 
 	for row in iter(p.stdout.readline, b''):
 
@@ -184,6 +202,8 @@ def refresher():
 
 	global bars
 
+	if stop: quit()
+
 	if len(bars) != 0:
 		for b in bars:
 			c.delete(b)
@@ -202,8 +222,7 @@ def refresher():
 
 	for x, y in enumerate(manCountSorted):
 		
-		if x > 9:
-			break
+		if x > 9: break
 
 		x0 = x * x_stretch + x * x_width + x_gap
 		y0 = c_height - norms[x] * y_stretch
@@ -234,8 +253,7 @@ def displayOutput():
 			macOutput.task_done()
 			lineNumber += 1
 
-		if stop:
-			break
+		if stop: break
 
 def messageOutput():
 
@@ -253,8 +271,7 @@ def messageOutput():
 			mOutput.task_done()
 			lineNumber += 1
 
-		if stop:
-			break
+		if stop: break
 
 def runGui(manufacturers):
 
@@ -311,9 +328,9 @@ def runGui(manufacturers):
 	global bars
 	bars = []
 
-	t.Thread(target=displayOutput).start()
-	t.Thread(target=messageOutput).start()
-	t.Thread(target=refresher).start()
+	threads[0].start()
+	threads[1].start()
+	threads[2].start()
 
 	root.mainloop()
 
@@ -335,17 +352,20 @@ print('Recon 0.1')
 interface = args.interface
 updatedb = args.updatedb
 
+threads = [t.Thread(target=displayOutput), t.Thread(target=messageOutput), t.Thread(target=refresher), t.Thread(target=countManufacturers, args=(manCount,addresses,interface,manufacturers))]
+
 if updatedb:
 	updateManuf()
 
 macOutput = Queue()
 mOutput = Queue()
 
-monitoringThread = t.Thread(target=countManufacturers, args=(manCount,addresses,interface,manufacturers))
-monitoringThread.start()
+threads[3].start()
+
+signal.signal(signal.SIGINT, handler)
 
 stop = False
 runGui(manufacturers)
 stop = True
-monitoringThread.join()
+threads[3].join()
 print('[+] Goodbye!')
