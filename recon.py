@@ -333,8 +333,8 @@ def runGui(manufacturers):
 
 	root.mainloop()
 
-argparser = argparse.ArgumentParser(description='Blockade-Recon 0.1')
-argparser.add_argument('-i', default='wlan0mon', help='Specify a wireless interface to listen on')
+argparser = argparse.ArgumentParser(description='Blockade-Recon 0.2')
+argparser.add_argument('-i', metavar='interface', default='wlan0mon', help='Specify a wireless interface to listen on')
 argparser.add_argument('-u', action='store_true', help='Attempt to retrieve an updated version of the manufacturer database')
 args = argparser.parse_args()
 	

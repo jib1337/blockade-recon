@@ -1,6 +1,6 @@
 # Blockade-Recon | Jack Nelson, 2020
 
-This tool captures MAC addresses from wireless data and tallys them based on manufacturer. Data can be imported and exported for use over multiple sessions. Useful for auditing wireless devices that active at a location.
+This tool captures MAC addresses from wireless data and tallys them based on manufacturer. Data can be imported and exported for use over multiple sessions. Useful for auditing wireless devices that are active at a location.
 
 ![UI Screenshot](screen.jpg)
 
