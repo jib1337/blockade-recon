@@ -65,7 +65,6 @@ def loadDb():
 	return manufacturers
 
 def countManufacturers(manCount, addresses, interface, manufacturers):
-
 	print(f'[+] Using interface {interface}')
 	print('[+] Capturing preliminary data. Please wait...')
 
@@ -335,8 +334,8 @@ def runGui(manufacturers):
 	root.mainloop()
 
 argparser = argparse.ArgumentParser(description='Blockade-Recon 0.1')
-argparser.add_argument('-i', '--interface', default='wlan0mon', help='Specify a wireless interface to listen on')
-argparser.add_argument('-u', '--updatedb', action='store_true', help='Attempt to retrieve an updated version of the manufacturer database')
+argparser.add_argument('-i', default='wlan0mon', help='Specify a wireless interface to listen on')
+argparser.add_argument('-u', action='store_true', help='Attempt to retrieve an updated version of the manufacturer database')
 args = argparser.parse_args()
 	
 manCount = dict()
@@ -347,10 +346,10 @@ messageData = list()
 discoveredSSIDS = set()
 bssidPairs = list()
 
-print('Recon 0.1')
+print('Recon 0.2')
 
-interface = args.interface
-updatedb = args.updatedb
+interface = args.i
+updatedb = args.u
 
 threads = [t.Thread(target=displayOutput), t.Thread(target=messageOutput), t.Thread(target=refresher), t.Thread(target=countManufacturers, args=(manCount,addresses,interface,manufacturers))]
 
