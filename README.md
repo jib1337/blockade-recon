@@ -8,23 +8,20 @@ This tool captures MAC addresses from wireless data and tallys them based on man
 * tcpdump
 
 ## Usage Overview
-
 Requires a wireless adapter capable of monitor mode.
-
 ```
-usage: recon.py [-h] [-i INTERFACE] [-u]
+usage: recon.py [-h] [-i interface] [-u]
 
-Blockade-Recon 0.1
+Blockade-Recon 0.2
 
 optional arguments:
-  -h, --help            show this help message and exit
-  -i, --interface 		Specify a wireless interface to listen on
-  -u, --updatedb        Attempt to retrieve an updated version of the
-                        manufacturer database
+  -h, --help    show this help message and exit
+  -i interface  Specify a wireless interface to listen on
+  -u            Attempt to retrieve an updated version of the manufacturer
+                database
 ```
 
 The following setup assumes use with Kali.
-
 1. Clone the repository
 2. Connect your wireless card, bring up the interface and start monitor mode. Example using airmon-ng (replace "wlan0" with the name of your interface:
 ```
