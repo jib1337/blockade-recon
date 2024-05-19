@@ -24,7 +24,7 @@ def handler(sig, frame):
 def updateManuf():
 
 	print('[+] Retrieving manufacturer database...')
-	system('wget -q -N https://gitlab.com/wireshark/wireshark/raw/master/manuf')
+	system('wget -q -N https://www.wireshark.org/download/automated/data/manuf')
 
 def loadDb():
 
